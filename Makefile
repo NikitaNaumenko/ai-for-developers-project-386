@@ -1,6 +1,6 @@
 APP_NAME := calendar-api
 
-.PHONY: tools generate test run build frontend-install frontend-dev frontend-build typespec-install typespec-build typespec-check
+.PHONY: tools generate test run build frontend-install frontend-dev frontend-build typespec-install typespec-build typespec-check mock-api
 
 tools:
 	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.7.0
@@ -36,3 +36,6 @@ typespec-build:
 
 typespec-check:
 	npm run check --prefix api/typespec
+
+mock-api:
+	npm run mock --prefix api/typespec

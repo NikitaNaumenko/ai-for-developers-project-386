@@ -17,6 +17,7 @@ Go backend template with PostgreSQL, `sqlc`, and HTTP server code generated from
 - Mantine
 - Vite
 - TanStack Query
+- Stoplight Prism for OpenAPI mock API
 
 ## Layout
 
@@ -61,9 +62,25 @@ TypeSpec:
 make typespec-install
 make typespec-build
 make typespec-check
+make mock-api
 ```
 
 TypeSpec output is generated to `api/openapi.yaml`. The TypeSpec workspace is the source for the OpenAPI contract; run `make generate` after updating operations that should affect the Go server.
+
+Mock API:
+
+```sh
+make typespec-install
+make mock-api
+```
+
+The Prism mock server runs on `http://localhost:4010` and serves the OpenAPI paths without the `/api` prefix, matching the Go router. For example, `GET http://localhost:4010/event-types`.
+
+To point the Vite dev proxy at the mock API instead of the Go backend:
+
+```sh
+VITE_API_PROXY_TARGET=http://localhost:4010 make frontend-dev
+```
 
 PostgreSQL:
 

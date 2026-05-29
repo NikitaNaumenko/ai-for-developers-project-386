@@ -19,7 +19,7 @@ const queryClient = new QueryClient({
 });
 
 const theme = createTheme({
-  primaryColor: 'teal',
+  primaryColor: 'dark',
   defaultRadius: 'sm',
   fontFamily:
     'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -39,4 +39,3 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
-

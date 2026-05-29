@@ -1,7 +1,3 @@
-import { createEvent, listEvents } from './client';
+import { calendarApi } from './client';
 
-export const eventsApi = {
-  list: listEvents,
-  create: createEvent,
-};
-
+export const eventsApi = calendarApi;

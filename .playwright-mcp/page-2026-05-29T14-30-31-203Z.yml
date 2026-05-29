@@ -1,0 +1,84 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e11]:
+          - heading "Calendar" [level=1] [ref=e12]
+          - paragraph [ref=e13]: Scheduling workspace
+      - generic [ref=e14]:
+        - generic [ref=e16]: Connecting
+        - button "Refresh" [disabled] [ref=e17]:
+          - img [ref=e21]
+  - navigation [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - paragraph [ref=e27]: Workspace
+        - generic [ref=e28] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e33]: Booking page
+        - generic [ref=e34] [cursor=pointer]:
+          - img [ref=e36]
+          - generic [ref=e39]: Event types
+        - generic [ref=e40] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e45]: Bookings
+      - generic [ref=e46]:
+        - generic [ref=e47]: CN
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Calendar
+          - paragraph [ref=e50]: /calendar
+  - main [ref=e51]:
+    - main [ref=e52]:
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - paragraph [ref=e55]: Public link
+          - heading "Booking page" [level=1] [ref=e56]
+          - paragraph [ref=e57]: Select an event type, choose a time, and confirm the guest details.
+        - generic [ref=e58]:
+          - region "Event types" [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61]: CN
+              - paragraph [ref=e62]: Calendar
+              - heading "Book a meeting" [level=2] [ref=e63]
+              - paragraph [ref=e64]: Choose a meeting type and pick an available time. Confirmation is sent instantly.
+              - generic [ref=e65]:
+                - generic [ref=e66]:
+                  - img [ref=e68]
+                  - generic [ref=e71]: Online
+                - generic [ref=e72]:
+                  - img [ref=e74]
+                  - generic [ref=e77]: Asia/Tashkent
+            - paragraph [ref=e81]: Loading event types
+          - region "Available times" [ref=e82]:
+            - generic [ref=e83]:
+              - generic [ref=e84]:
+                - paragraph [ref=e85]: Select
+                - heading "Choose a time" [level=2] [ref=e86]
+              - generic [ref=e88]: Asia/Tashkent
+            - separator [ref=e89]
+            - paragraph [ref=e94]: No open slots
+          - region "Guest details" [ref=e95]:
+            - generic [ref=e97]:
+              - generic [ref=e98]:
+                - heading "Guest details" [level=2] [ref=e99]
+                - paragraph [ref=e100]: No time selected
+              - generic [ref=e101]:
+                - paragraph [ref=e102]: Selection
+                - paragraph [ref=e103]: Event type
+                - paragraph [ref=e104]: Pick a time to continue
+              - generic [ref=e105]:
+                - generic [ref=e106]: Name *
+                - generic [ref=e107]:
+                  - img [ref=e109]
+                  - textbox "Name" [ref=e112]
+              - generic [ref=e113]:
+                - generic [ref=e114]: Email *
+                - textbox "Email" [ref=e116]
+              - generic [ref=e117]:
+                - generic [ref=e118]: Note
+                - textbox "Note" [ref=e120]
+              - button "Confirm booking" [disabled] [ref=e121]:
+                - generic [ref=e122]:
+                  - img [ref=e124]
+                  - generic [ref=e127]: Confirm booking

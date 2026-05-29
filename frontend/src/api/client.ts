@@ -5,25 +5,50 @@ export type ApiErrorBody = {
   };
 };
 
-export type EventDto = {
+export type EventType = {
   id: string;
   title: string;
-  description?: string | null;
+  description: string;
+  durationMinutes: number;
+};
+
+export type AvailableSlot = {
   startsAt: string;
   endsAt: string;
+};
+
+export type SlotsResponse = {
+  eventTypeId: string;
+  windowStartsAt: string;
+  windowEndsAt: string;
+  slots: AvailableSlot[];
+};
+
+export type Booking = {
+  id: string;
+  eventTypeId: string;
+  eventTypeTitle: string;
+  startsAt: string;
+  endsAt: string;
+  guestName: string;
+  guestEmail: string;
+  guestNote?: string;
   createdAt: string;
-  updatedAt: string;
 };
 
-export type ListEventsResponse = {
-  items: EventDto[];
-};
-
-export type CreateEventRequest = {
-  title: string;
-  description?: string | null;
+export type CreateBookingRequest = {
+  eventTypeId: string;
   startsAt: string;
-  endsAt: string;
+  guestName: string;
+  guestEmail: string;
+  guestNote?: string;
+};
+
+export type CreateEventTypeRequest = {
+  id: string;
+  title: string;
+  description: string;
+  durationMinutes: number;
 };
 
 export class ApiError extends Error {
@@ -40,17 +65,22 @@ export class ApiError extends Error {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
-export async function listEvents(): Promise<ListEventsResponse> {
-  const params = new URLSearchParams({ limit: '100', offset: '0' });
-  return request<ListEventsResponse>(`/events?${params.toString()}`);
-}
-
-export async function createEvent(payload: CreateEventRequest): Promise<EventDto> {
-  return request<EventDto>('/events', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
+export const calendarApi = {
+  listEventTypes: () => request<EventType[]>('/event-types'),
+  listSlots: (eventTypeId: string) =>
+    request<SlotsResponse>(`/event-types/${encodeURIComponent(eventTypeId)}/slots`),
+  createBooking: (payload: CreateBookingRequest) =>
+    request<Booking>('/bookings', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  createEventType: (payload: CreateEventTypeRequest) =>
+    request<EventType>('/admin/event-types', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  listUpcomingBookings: () => request<Booking[]>('/admin/bookings/upcoming'),
+};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -82,4 +112,3 @@ async function readError(response: Response): Promise<ApiErrorBody> {
     };
   }
 }
-
