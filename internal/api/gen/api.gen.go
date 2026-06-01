@@ -8,34 +8,190 @@ import (
 	"compress/flate"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// AvailableSlot defines model for AvailableSlot.
+type AvailableSlot struct {
+	// EndsAt Время окончания слота в формате ISO 8601 date-time.
+	EndsAt time.Time `json:"endsAt"`
+
+	// StartsAt Время начала слота в формате ISO 8601 date-time.
+	StartsAt time.Time `json:"startsAt"`
+}
+
+// Booking defines model for Booking.
+type Booking struct {
+	// CreatedAt Время создания бронирования.
+	CreatedAt time.Time `json:"createdAt"`
+
+	// EndsAt Время окончания бронирования в формате ISO 8601 date-time.
+	EndsAt time.Time `json:"endsAt"`
+
+	// EventTypeId Идентификатор забронированного типа события.
+	EventTypeId openapi_types.UUID `json:"eventTypeId"`
+
+	// EventTypeTitle Название типа события для отображения в списке бронирований.
+	EventTypeTitle string `json:"eventTypeTitle"`
+
+	// GuestEmail Email гостя.
+	GuestEmail openapi_types.Email `json:"guestEmail"`
+
+	// GuestName Имя гостя.
+	GuestName string `json:"guestName"`
+
+	// GuestNote Необязательная заметка от гостя.
+	GuestNote *string `json:"guestNote,omitempty"`
+
+	// Id Идентификатор бронирования, сгенерированный системой.
+	Id openapi_types.UUID `json:"id"`
+
+	// StartsAt Время начала бронирования в формате ISO 8601 date-time.
+	StartsAt time.Time `json:"startsAt"`
+}
+
+// CreateBookingRequest defines model for CreateBookingRequest.
+type CreateBookingRequest struct {
+	// EventTypeId Тип события, выбранный гостем.
+	EventTypeId openapi_types.UUID `json:"eventTypeId"`
+
+	// GuestEmail Email гостя.
+	GuestEmail openapi_types.Email `json:"guestEmail"`
+
+	// GuestName Имя гостя.
+	GuestName string `json:"guestName"`
+
+	// GuestNote Необязательная заметка от гостя.
+	GuestNote *string `json:"guestNote,omitempty"`
+
+	// StartsAt Время начала выбранного слота. Значение должно совпадать с одним из свободных слотов, которые сервер вернул для текущего 14-дневного окна записи.
+	StartsAt time.Time `json:"startsAt"`
+}
+
+// CreateEventTypeRequest defines model for CreateEventTypeRequest.
+type CreateEventTypeRequest struct {
+	// Description Описание типа события, которое показывается гостям перед бронированием.
+	Description string `json:"description"`
+
+	// DurationMinutes Длительность события в минутах.
+	DurationMinutes int32 `json:"durationMinutes"`
+
+	// Id Идентификатор типа события, заданный владельцем календаря.
+	Id openapi_types.UUID `json:"id"`
+
+	// Title Название типа события, которое показывается гостям.
+	Title string `json:"title"`
+}
 
 // ErrorBody defines model for ErrorBody.
 type ErrorBody struct {
-	Code    string `json:"code"`
+	// Code Машиночитаемый код ошибки.
+	Code string `json:"code"`
+
+	// Message Человекочитаемое описание ошибки.
 	Message string `json:"message"`
 }
 
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
+	// Error Информация об ошибке.
 	Error ErrorBody `json:"error"`
 }
 
+// EventType defines model for EventType.
+type EventType struct {
+	// Description Описание типа события, которое показывается гостям перед бронированием.
+	Description string `json:"description"`
+
+	// DurationMinutes Длительность события в минутах.
+	DurationMinutes int32 `json:"durationMinutes"`
+
+	// Id Идентификатор типа события, заданный владельцем календаря.
+	Id openapi_types.UUID `json:"id"`
+
+	// Title Название типа события, которое показывается гостям.
+	Title string `json:"title"`
+}
+
+// SlotsResponse defines model for SlotsResponse.
+type SlotsResponse struct {
+	// EventTypeId Тип события, для которого рассчитаны слоты.
+	EventTypeId openapi_types.UUID `json:"eventTypeId"`
+
+	// Slots Свободные слоты в окне записи. Сервер возвращает только слоты, доступные для бронирования.
+	Slots []AvailableSlot `json:"slots"`
+
+	// WindowEndsAt Конец рассчитанного сервером окна записи, не включительно.
+	WindowEndsAt time.Time `json:"windowEndsAt"`
+
+	// WindowStartsAt Начало рассчитанного сервером окна записи, включительно.
+	WindowStartsAt time.Time `json:"windowStartsAt"`
+}
+
+// AdminEventTypesCreateEventTypeJSONRequestBody defines body for AdminEventTypesCreateEventType for application/json ContentType.
+type AdminEventTypesCreateEventTypeJSONRequestBody = CreateEventTypeRequest
+
+// BookingsCreateBookingJSONRequestBody defines body for BookingsCreateBooking for application/json ContentType.
+type BookingsCreateBookingJSONRequestBody = CreateBookingRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (GET /admin/bookings/upcoming)
+	AdminBookingsListUpcomingBookings(w http.ResponseWriter, r *http.Request)
+
+	// (POST /admin/event-types)
+	AdminEventTypesCreateEventType(w http.ResponseWriter, r *http.Request)
+
+	// (POST /bookings)
+	BookingsCreateBooking(w http.ResponseWriter, r *http.Request)
+
+	// (GET /event-types)
+	EventTypesListEventTypes(w http.ResponseWriter, r *http.Request)
+
+	// (GET /event-types/{eventTypeId}/slots)
+	SlotsListAvailableSlots(w http.ResponseWriter, r *http.Request, eventTypeId openapi_types.UUID)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// (GET /admin/bookings/upcoming)
+func (_ Unimplemented) AdminBookingsListUpcomingBookings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /admin/event-types)
+func (_ Unimplemented) AdminEventTypesCreateEventType(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /bookings)
+func (_ Unimplemented) BookingsCreateBooking(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /event-types)
+func (_ Unimplemented) EventTypesListEventTypes(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (GET /event-types/{eventTypeId}/slots)
+func (_ Unimplemented) SlotsListAvailableSlots(w http.ResponseWriter, r *http.Request, eventTypeId openapi_types.UUID) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
@@ -45,6 +201,88 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// AdminBookingsListUpcomingBookings operation middleware
+func (siw *ServerInterfaceWrapper) AdminBookingsListUpcomingBookings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminBookingsListUpcomingBookings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdminEventTypesCreateEventType operation middleware
+func (siw *ServerInterfaceWrapper) AdminEventTypesCreateEventType(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdminEventTypesCreateEventType(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BookingsCreateBooking operation middleware
+func (siw *ServerInterfaceWrapper) BookingsCreateBooking(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BookingsCreateBooking(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EventTypesListEventTypes operation middleware
+func (siw *ServerInterfaceWrapper) EventTypesListEventTypes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EventTypesListEventTypes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SlotsListAvailableSlots operation middleware
+func (siw *ServerInterfaceWrapper) SlotsListAvailableSlots(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "eventTypeId" -------------
+	var eventTypeId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventTypeId", chi.URLParam(r, "eventTypeId"), &eventTypeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventTypeId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SlotsListAvailableSlots(w, r, eventTypeId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 type UnescapedCookieParamError struct {
 	ParamName string
@@ -153,12 +391,254 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		}
 	}
+	wrapper := ServerInterfaceWrapper{
+		Handler:            si,
+		HandlerMiddlewares: options.Middlewares,
+		ErrorHandlerFunc:   options.ErrorHandlerFunc,
+	}
+
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/admin/bookings/upcoming", wrapper.AdminBookingsListUpcomingBookings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/admin/event-types", wrapper.AdminEventTypesCreateEventType)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/bookings", wrapper.BookingsCreateBooking)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/event-types", wrapper.EventTypesListEventTypes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/event-types/{eventTypeId}/slots", wrapper.SlotsListAvailableSlots)
+	})
 
 	return r
 }
 
+type AdminBookingsListUpcomingBookingsRequestObject struct {
+}
+
+type AdminBookingsListUpcomingBookingsResponseObject interface {
+	VisitAdminBookingsListUpcomingBookingsResponse(w http.ResponseWriter) error
+}
+
+type AdminBookingsListUpcomingBookings200JSONResponse []Booking
+
+func (response AdminBookingsListUpcomingBookings200JSONResponse) VisitAdminBookingsListUpcomingBookingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminEventTypesCreateEventTypeRequestObject struct {
+	Body *AdminEventTypesCreateEventTypeJSONRequestBody
+}
+
+type AdminEventTypesCreateEventTypeResponseObject interface {
+	VisitAdminEventTypesCreateEventTypeResponse(w http.ResponseWriter) error
+}
+
+type AdminEventTypesCreateEventType201JSONResponse EventType
+
+func (response AdminEventTypesCreateEventType201JSONResponse) VisitAdminEventTypesCreateEventTypeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminEventTypesCreateEventType400JSONResponse ErrorResponse
+
+func (response AdminEventTypesCreateEventType400JSONResponse) VisitAdminEventTypesCreateEventTypeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AdminEventTypesCreateEventType409JSONResponse ErrorResponse
+
+func (response AdminEventTypesCreateEventType409JSONResponse) VisitAdminEventTypesCreateEventTypeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookingsCreateBookingRequestObject struct {
+	Body *BookingsCreateBookingJSONRequestBody
+}
+
+type BookingsCreateBookingResponseObject interface {
+	VisitBookingsCreateBookingResponse(w http.ResponseWriter) error
+}
+
+type BookingsCreateBooking201JSONResponse Booking
+
+func (response BookingsCreateBooking201JSONResponse) VisitBookingsCreateBookingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookingsCreateBooking400JSONResponse ErrorResponse
+
+func (response BookingsCreateBooking400JSONResponse) VisitBookingsCreateBookingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookingsCreateBooking404JSONResponse ErrorResponse
+
+func (response BookingsCreateBooking404JSONResponse) VisitBookingsCreateBookingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type BookingsCreateBooking409JSONResponse ErrorResponse
+
+func (response BookingsCreateBooking409JSONResponse) VisitBookingsCreateBookingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type EventTypesListEventTypesRequestObject struct {
+}
+
+type EventTypesListEventTypesResponseObject interface {
+	VisitEventTypesListEventTypesResponse(w http.ResponseWriter) error
+}
+
+type EventTypesListEventTypes200JSONResponse []EventType
+
+func (response EventTypesListEventTypes200JSONResponse) VisitEventTypesListEventTypesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SlotsListAvailableSlotsRequestObject struct {
+	EventTypeId openapi_types.UUID `json:"eventTypeId"`
+}
+
+type SlotsListAvailableSlotsResponseObject interface {
+	VisitSlotsListAvailableSlotsResponse(w http.ResponseWriter) error
+}
+
+type SlotsListAvailableSlots200JSONResponse SlotsResponse
+
+func (response SlotsListAvailableSlots200JSONResponse) VisitSlotsListAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SlotsListAvailableSlots400JSONResponse ErrorResponse
+
+func (response SlotsListAvailableSlots400JSONResponse) VisitSlotsListAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SlotsListAvailableSlots404JSONResponse ErrorResponse
+
+func (response SlotsListAvailableSlots404JSONResponse) VisitSlotsListAvailableSlotsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+
+	// (GET /admin/bookings/upcoming)
+	AdminBookingsListUpcomingBookings(ctx context.Context, request AdminBookingsListUpcomingBookingsRequestObject) (AdminBookingsListUpcomingBookingsResponseObject, error)
+
+	// (POST /admin/event-types)
+	AdminEventTypesCreateEventType(ctx context.Context, request AdminEventTypesCreateEventTypeRequestObject) (AdminEventTypesCreateEventTypeResponseObject, error)
+
+	// (POST /bookings)
+	BookingsCreateBooking(ctx context.Context, request BookingsCreateBookingRequestObject) (BookingsCreateBookingResponseObject, error)
+
+	// (GET /event-types)
+	EventTypesListEventTypes(ctx context.Context, request EventTypesListEventTypesRequestObject) (EventTypesListEventTypesResponseObject, error)
+
+	// (GET /event-types/{eventTypeId}/slots)
+	SlotsListAvailableSlots(ctx context.Context, request SlotsListAvailableSlotsRequestObject) (SlotsListAvailableSlotsResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -190,16 +670,183 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
+// AdminBookingsListUpcomingBookings operation middleware
+func (sh *strictHandler) AdminBookingsListUpcomingBookings(w http.ResponseWriter, r *http.Request) {
+	var request AdminBookingsListUpcomingBookingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminBookingsListUpcomingBookings(ctx, request.(AdminBookingsListUpcomingBookingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminBookingsListUpcomingBookings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminBookingsListUpcomingBookingsResponseObject); ok {
+		if err := validResponse.VisitAdminBookingsListUpcomingBookingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AdminEventTypesCreateEventType operation middleware
+func (sh *strictHandler) AdminEventTypesCreateEventType(w http.ResponseWriter, r *http.Request) {
+	var request AdminEventTypesCreateEventTypeRequestObject
+
+	var body AdminEventTypesCreateEventTypeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AdminEventTypesCreateEventType(ctx, request.(AdminEventTypesCreateEventTypeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AdminEventTypesCreateEventType")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AdminEventTypesCreateEventTypeResponseObject); ok {
+		if err := validResponse.VisitAdminEventTypesCreateEventTypeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// BookingsCreateBooking operation middleware
+func (sh *strictHandler) BookingsCreateBooking(w http.ResponseWriter, r *http.Request) {
+	var request BookingsCreateBookingRequestObject
+
+	var body BookingsCreateBookingJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.BookingsCreateBooking(ctx, request.(BookingsCreateBookingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "BookingsCreateBooking")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(BookingsCreateBookingResponseObject); ok {
+		if err := validResponse.VisitBookingsCreateBookingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// EventTypesListEventTypes operation middleware
+func (sh *strictHandler) EventTypesListEventTypes(w http.ResponseWriter, r *http.Request) {
+	var request EventTypesListEventTypesRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.EventTypesListEventTypes(ctx, request.(EventTypesListEventTypesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "EventTypesListEventTypes")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(EventTypesListEventTypesResponseObject); ok {
+		if err := validResponse.VisitEventTypesListEventTypesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SlotsListAvailableSlots operation middleware
+func (sh *strictHandler) SlotsListAvailableSlots(w http.ResponseWriter, r *http.Request, eventTypeId openapi_types.UUID) {
+	var request SlotsListAvailableSlotsRequestObject
+
+	request.EventTypeId = eventTypeId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SlotsListAvailableSlots(ctx, request.(SlotsListAvailableSlotsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SlotsListAvailableSlots")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SlotsListAvailableSlotsResponseObject); ok {
+		if err := validResponse.VisitSlotsListAvailableSlotsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"bI8xT8MwEIX/SvRgtJoIlsobIAYkBsRadTDxtTFyfOZ8rVRV+e/ICagSZcrF73t3753R85g5UdICe0bp",
-	"BxrdPD6LsDyyP9WfLJxJNNAs9eypfvWUCRZFJaQ9JoORSnH7/7TJQOjrEIQ87GbZcOG35pfnj0/qte6a",
-	"779TyZwKXWegKtfhVmgHi5v20qT9qdFeOvwNsNiv71YupB3PFYLGqj25SMk7aR7eXprjHQyOJCVwgkW3",
-	"6lZdjcuZkssBFvfzk0F2OtSok0EhqRbYzRmeSi8h6+J/5d7FxtORIueRkjYLC4ODRFgMqtm2bazcwEXt",
-	"ult3mLbTdwAAAP//",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

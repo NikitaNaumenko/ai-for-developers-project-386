@@ -1,3 +1,6 @@
+-include .env.example
+export
+
 APP_NAME := calendar-api
 
 .PHONY: tools generate test run build frontend-install frontend-dev frontend-build typespec-install typespec-build typespec-check mock-api

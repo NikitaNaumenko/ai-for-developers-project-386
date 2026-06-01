@@ -406,26 +406,29 @@ function BookingPage({
                   leftSection={<IconUser size={16} />}
                   value={form.guestName}
                   required
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, guestName: event.currentTarget.value }))
-                  }
+                  onChange={(event) => {
+                    const { value } = event.currentTarget;
+                    setForm((current) => ({ ...current, guestName: value }));
+                  }}
                 />
                 <TextInput
                   label="Email"
                   type="email"
                   value={form.guestEmail}
                   required
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, guestEmail: event.currentTarget.value }))
-                  }
+                  onChange={(event) => {
+                    const { value } = event.currentTarget;
+                    setForm((current) => ({ ...current, guestEmail: value }));
+                  }}
                 />
                 <Textarea
                   label="Note"
                   minRows={4}
                   value={form.guestNote}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, guestNote: event.currentTarget.value }))
-                  }
+                  onChange={(event) => {
+                    const { value } = event.currentTarget;
+                    setForm((current) => ({ ...current, guestNote: value }));
+                  }}
                 />
                 <Button
                   type="submit"
@@ -514,21 +517,23 @@ function EventTypesPage({
                   value={form.title}
                   required
                   maxLength={200}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, title: event.currentTarget.value }))
-                  }
+                  onChange={(event) => {
+                    const { value } = event.currentTarget;
+                    setForm((current) => ({ ...current, title: value }));
+                  }}
                 />
                 <Textarea
                   label="Description"
                   minRows={4}
                   value={form.description}
                   required
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const { value } = event.currentTarget;
                     setForm((current) => ({
                       ...current,
-                      description: event.currentTarget.value,
-                    }))
-                  }
+                      description: value,
+                    }));
+                  }}
                 />
                 <NumberInput
                   label="Duration"
