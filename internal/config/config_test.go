@@ -30,3 +30,16 @@ func TestLoadFallsBackToHTTPAddr(t *testing.T) {
 		t.Fatalf("expected HTTP_ADDR fallback, got %q", cfg.HTTPAddr)
 	}
 }
+
+func TestLoadAllowsEmptyDatabaseURL(t *testing.T) {
+	t.Setenv("DATABASE_URL", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cfg.DatabaseURL != "" {
+		t.Fatalf("expected empty DatabaseURL, got %q", cfg.DatabaseURL)
+	}
+}

@@ -1,9 +1,6 @@
 package config
 
-import (
-	"fmt"
-	"os"
-)
+import "os"
 
 type Config struct {
 	Env         string
@@ -18,10 +15,6 @@ func Load() (Config, error) {
 		HTTPAddr:    httpAddr(),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		StaticDir:   os.Getenv("STATIC_DIR"),
-	}
-
-	if cfg.DatabaseURL == "" {
-		return Config{}, fmt.Errorf("DATABASE_URL is required")
 	}
 
 	return cfg, nil

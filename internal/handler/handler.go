@@ -19,14 +19,23 @@ import (
 const bookingWindow = 14 * 24 * time.Hour
 
 type Handler struct {
-	queries *db.Queries
-	now     func() time.Time
+	store Store
+	now   func() time.Time
 }
 
-func New(queries *db.Queries) *Handler {
+type Store interface {
+	CreateBooking(context.Context, db.CreateBookingParams) (db.CreateBookingRow, error)
+	CreateEventType(context.Context, db.CreateEventTypeParams) (db.EventType, error)
+	GetEventType(context.Context, pgtype.UUID) (db.EventType, error)
+	ListBookingsInWindow(context.Context, db.ListBookingsInWindowParams) ([]db.ListBookingsInWindowRow, error)
+	ListEventTypes(context.Context) ([]db.EventType, error)
+	ListUpcomingBookings(context.Context, pgtype.Timestamptz) ([]db.ListUpcomingBookingsRow, error)
+}
+
+func New(store Store) *Handler {
 	return &Handler{
-		queries: queries,
-		now:     time.Now,
+		store: store,
+		now:   time.Now,
 	}
 }
 
@@ -34,7 +43,7 @@ func (h *Handler) AdminBookingsListUpcomingBookings(
 	ctx context.Context,
 	_ gen.AdminBookingsListUpcomingBookingsRequestObject,
 ) (gen.AdminBookingsListUpcomingBookingsResponseObject, error) {
-	rows, err := h.queries.ListUpcomingBookings(ctx, timestamptz(h.now().UTC()))
+	rows, err := h.store.ListUpcomingBookings(ctx, timestamptz(h.now().UTC()))
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +69,7 @@ func (h *Handler) AdminEventTypesCreateEventType(
 		return gen.AdminEventTypesCreateEventType400JSONResponse(errorResponse("bad_request", err.Error())), nil
 	}
 
-	eventType, err := h.queries.CreateEventType(ctx, db.CreateEventTypeParams{
+	eventType, err := h.store.CreateEventType(ctx, db.CreateEventTypeParams{
 		ID:              uuidParam(body.Id),
 		Title:           strings.TrimSpace(body.Title),
 		Description:     strings.TrimSpace(body.Description),
@@ -92,7 +101,7 @@ func (h *Handler) BookingsCreateBooking(
 		return gen.BookingsCreateBooking400JSONResponse(errorResponse("bad_request", err.Error())), nil
 	}
 
-	eventType, err := h.queries.GetEventType(ctx, uuidParam(body.EventTypeId))
+	eventType, err := h.store.GetEventType(ctx, uuidParam(body.EventTypeId))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return gen.BookingsCreateBooking404JSONResponse(errorResponse("event_type_not_found", "event type not found")), nil
@@ -116,7 +125,7 @@ func (h *Handler) BookingsCreateBooking(
 		return gen.BookingsCreateBooking409JSONResponse(errorResponse("slot_unavailable", "selected slot is already booked")), nil
 	}
 
-	booking, err := h.queries.CreateBooking(ctx, db.CreateBookingParams{
+	booking, err := h.store.CreateBooking(ctx, db.CreateBookingParams{
 		EventTypeID: uuidParam(body.EventTypeId),
 		StartsAt:    timestamptz(startsAt),
 		EndsAt:      timestamptz(endsAt),
@@ -144,7 +153,7 @@ func (h *Handler) EventTypesListEventTypes(
 	ctx context.Context,
 	_ gen.EventTypesListEventTypesRequestObject,
 ) (gen.EventTypesListEventTypesResponseObject, error) {
-	rows, err := h.queries.ListEventTypes(ctx)
+	rows, err := h.store.ListEventTypes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +170,7 @@ func (h *Handler) SlotsListAvailableSlots(
 	ctx context.Context,
 	request gen.SlotsListAvailableSlotsRequestObject,
 ) (gen.SlotsListAvailableSlotsResponseObject, error) {
-	eventType, err := h.queries.GetEventType(ctx, uuidParam(request.EventTypeId))
+	eventType, err := h.store.GetEventType(ctx, uuidParam(request.EventTypeId))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return gen.SlotsListAvailableSlots404JSONResponse(errorResponse("event_type_not_found", "event type not found")), nil
@@ -170,7 +179,7 @@ func (h *Handler) SlotsListAvailableSlots(
 	}
 
 	windowStartsAt, windowEndsAt := bookingWindowBounds(h.now().UTC())
-	bookings, err := h.queries.ListBookingsInWindow(ctx, db.ListBookingsInWindowParams{
+	bookings, err := h.store.ListBookingsInWindow(ctx, db.ListBookingsInWindowParams{
 		WindowStartsAt: timestamptz(windowStartsAt),
 		WindowEndsAt:   timestamptz(windowEndsAt),
 	})
@@ -190,7 +199,7 @@ func (h *Handler) SlotsListAvailableSlots(
 }
 
 func (h *Handler) isSlotOccupied(ctx context.Context, startsAt time.Time, endsAt time.Time) (bool, error) {
-	bookings, err := h.queries.ListBookingsInWindow(ctx, db.ListBookingsInWindowParams{
+	bookings, err := h.store.ListBookingsInWindow(ctx, db.ListBookingsInWindowParams{
 		WindowStartsAt: timestamptz(startsAt),
 		WindowEndsAt:   timestamptz(endsAt),
 	})

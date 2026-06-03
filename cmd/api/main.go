@@ -32,13 +32,20 @@ func main() {
 		log.Fatal("load config", zap.Error(err))
 	}
 
-	pool, err := storage.OpenPostgres(ctx, cfg.DatabaseURL)
-	if err != nil {
-		log.Fatal("open postgres", zap.Error(err))
+	var store handler.Store
+	if cfg.DatabaseURL == "" {
+		log.Info("database url is not configured; using in-memory storage")
+		store = storage.NewMemoryStore()
+	} else {
+		pool, err := storage.OpenPostgres(ctx, cfg.DatabaseURL)
+		if err != nil {
+			log.Fatal("open postgres", zap.Error(err))
+		}
+		defer pool.Close()
+		store = db.New(pool)
 	}
-	defer pool.Close()
 
-	apiHandler := handler.New(db.New(pool))
+	apiHandler := handler.New(store)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           httpserver.NewRouter(log, apiHandler, cfg.StaticDir),
