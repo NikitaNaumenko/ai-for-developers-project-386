@@ -28,11 +28,11 @@ func Load() (Config, error) {
 }
 
 func httpAddr() string {
-	if value := os.Getenv("HTTP_ADDR"); value != "" {
-		return value
-	}
 	if port := os.Getenv("PORT"); port != "" {
 		return ":" + port
+	}
+	if value := os.Getenv("HTTP_ADDR"); value != "" {
+		return value
 	}
 	return ":8080"
 }

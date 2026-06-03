@@ -15,8 +15,10 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /out/calendar-api ./cmd/api
 
 FROM gcr.io/distroless/static-debian12:nonroot
+ENV PORT=10000
 ENV STATIC_DIR=/frontend/dist
 COPY --from=backend-build /out/calendar-api /calendar-api
 COPY --from=frontend-build /src/frontend/dist /frontend/dist
+EXPOSE 10000
 USER nonroot:nonroot
 ENTRYPOINT ["/calendar-api"]
