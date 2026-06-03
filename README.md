@@ -89,3 +89,12 @@ docker compose up -d postgres
 ```
 
 Migrations are intentionally tool-agnostic. The SQL files are compatible with common migration tools such as `golang-migrate`, `tern`, and `atlas`.
+
+## Render deploy
+
+The repository includes a `render.yaml` Blueprint that creates:
+
+- `calendar-api` - Docker web service with the Go API and built React frontend.
+- `calendar-db` - Render Postgres database.
+
+After committing and pushing changes to GitHub, create a new Render Blueprint from this repository. Render injects `DATABASE_URL` from `calendar-db`; the app reads Render's `PORT` automatically and serves the frontend from the Docker image.

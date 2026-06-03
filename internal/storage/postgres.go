@@ -40,6 +40,17 @@ func ensureSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	_, err := pool.Exec(ctx, `
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE TABLE IF NOT EXISTS events (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title text NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
+    description text,
+    starts_at timestamptz NOT NULL,
+    ends_at timestamptz NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CHECK (ends_at > starts_at)
+);
+
 CREATE TABLE IF NOT EXISTS event_types (
     id uuid PRIMARY KEY,
     title text NOT NULL CHECK (length(title) BETWEEN 1 AND 200),
@@ -62,6 +73,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     EXCLUDE USING gist (tstzrange(starts_at, ends_at, '[)') WITH &&)
 );
 
+CREATE INDEX IF NOT EXISTS events_starts_at_idx ON events (starts_at);
 CREATE INDEX IF NOT EXISTS bookings_starts_at_idx ON bookings (starts_at);
 CREATE INDEX IF NOT EXISTS bookings_event_type_id_idx ON bookings (event_type_id);
 `)

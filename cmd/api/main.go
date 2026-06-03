@@ -41,7 +41,7 @@ func main() {
 	apiHandler := handler.New(db.New(pool))
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpserver.NewRouter(log, apiHandler),
+		Handler:           httpserver.NewRouter(log, apiHandler, cfg.StaticDir),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      15 * time.Second,

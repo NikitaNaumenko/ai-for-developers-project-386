@@ -1,4 +1,12 @@
-FROM golang:1.26.3-alpine AS build
+FROM node:24-alpine AS frontend-build
+
+WORKDIR /src/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM golang:1.26.3-alpine AS backend-build
 
 WORKDIR /src
 COPY go.mod go.sum* ./
@@ -7,6 +15,8 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /out/calendar-api ./cmd/api
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /out/calendar-api /calendar-api
+ENV STATIC_DIR=/frontend/dist
+COPY --from=backend-build /out/calendar-api /calendar-api
+COPY --from=frontend-build /src/frontend/dist /frontend/dist
 USER nonroot:nonroot
 ENTRYPOINT ["/calendar-api"]

@@ -9,13 +9,15 @@ type Config struct {
 	Env         string
 	HTTPAddr    string
 	DatabaseURL string
+	StaticDir   string
 }
 
 func Load() (Config, error) {
 	cfg := Config{
 		Env:         getenv("APP_ENV", "local"),
-		HTTPAddr:    getenv("HTTP_ADDR", ":8080"),
+		HTTPAddr:    httpAddr(),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
+		StaticDir:   os.Getenv("STATIC_DIR"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -23,6 +25,16 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func httpAddr() string {
+	if value := os.Getenv("HTTP_ADDR"); value != "" {
+		return value
+	}
+	if port := os.Getenv("PORT"); port != "" {
+		return ":" + port
+	}
+	return ":8080"
 }
 
 func getenv(key string, fallback string) string {
